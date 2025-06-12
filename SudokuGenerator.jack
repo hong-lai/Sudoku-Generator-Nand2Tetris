@@ -1,0 +1,241 @@
+class SudokuGenerator {
+
+    static SudokuGenerator instance;
+    field Board board;
+    field Array bucket; // bucket used for validation
+    field int counter; // used for seed
+    field boolean slowMode; // show the shuffle effect
+    field boolean exit;
+
+    constructor SudokuGenerator new() {
+        let board = Board.new();
+        let bucket = Array.new(9);
+        let slowMode = false;
+        let exit = false;
+
+        return this;
+    }
+
+    method void dispose() {
+        do board.dispose();
+        do Memory.deAlloc(bucket);
+        do Memory.deAlloc(this);
+        return;
+    }
+
+    function void newInstance() {
+        if (instance = null) {
+            let instance = SudokuGenerator.new();
+        }
+
+        return;
+    }
+
+    function SudokuGenerator getInstance() {
+        return instance;
+    }
+
+    method void run() {
+        var char key;
+
+        while (~exit) {
+            while ((key = 0) & (~exit)) {
+                let key = Keyboard.keyPressed();
+                let counter = counter + 1;
+            }
+
+            if (key = 110) { // n
+                let slowMode = false;
+                do generateBoard();
+            } else {
+                if (key = 115) { // s
+                    let slowMode = true;
+                    do generateBoard();
+                } else {
+                    if (key = 113) { // q
+                        let exit = true;
+                    }
+                }
+            }
+
+            while (~(key = 0) & (~exit)) {
+                let key = Keyboard.keyPressed();
+                let counter = counter + 1;
+            }
+        }
+
+        if (exit) {
+            do Screen.clearScreen();
+            do Output.moveCursor(10, 27);
+	        do Output.printString("Thank you!");
+        }
+
+        return;
+    }
+
+    method void emptyBucket() {
+        var int i;
+        let i = 0;
+        while (i < 9) {
+            let bucket[i] = 0;
+            let i = i + 1;
+        }
+    
+        return;
+    }
+
+    method void randomiseArr(Array arr) {
+        var int i;
+        let i = 0;
+        while (i < 9) {
+            let arr[i] = i + 1;
+            let i = i + 1;
+        }
+
+        do Random.shuffle(arr, 9);
+
+        return;
+    }
+
+    method boolean validateCell(int row, int col) {
+        var int i, j, k;
+        var int m, n;
+        var int gridRow, gridCol;
+
+        // validate horizontally
+        do emptyBucket();
+        let i = 0;
+        while (i < 9) {
+            let k = board.getLoc(row, i) - 1;
+            if (~(k = -1) & ~(bucket[k] = 0) & (i = col)) {
+                return false;
+            }
+            let bucket[k] = bucket[k] + 1;
+            let i = i + 1;
+        }
+
+        // validate vertically
+        do emptyBucket();
+        let i = 0;
+        while (i < 9) {
+            let k = board.getLoc(i, col) - 1;
+            if (~(k = -1) & ~(bucket[k] = 0) & (i = row)) {
+                return false;
+            }
+            let bucket[k] = bucket[k] + 1;
+            let i = i + 1;
+        }
+
+        // validate subgrids
+        let gridRow = row / 3;
+        let gridCol = col / 3;
+
+        do emptyBucket();
+        let i = 0;
+        while (i < 3) {
+            let j = 0;
+            while (j < 3) {
+                let m = gridRow * 3 + i;
+                let n = gridCol * 3 + j;
+                let k = board.getLoc(m, n) - 1;
+                if (~(k = -1) & ~(bucket[k] = 0) & (m = row) & (n = col)) {
+                    return false;
+                }
+                let bucket[k] = bucket[k] + 1;
+                let j = j + 1;
+            }
+            let i = i + 1;
+        }
+
+        return true;
+    }
+
+    method void generateBoard() {
+        do Random.setSeed(counter);
+        do board.init();
+        do make(0, 0);
+        do show();
+        return;
+    }
+
+    method boolean make(int i, int j) {
+        var int n;
+        var Array candidates;
+
+
+        if (i = 9) {
+            return true;
+        }
+
+        if (j = 9) {
+            return make(i + 1, 0);
+        }
+
+        let candidates = Array.new(9);
+        do randomiseArr(candidates);
+
+        let n = 0;
+        while (n < 9) {
+            do board.setLoc(i, j, candidates[n]);
+            if (slowMode) {
+                do show();
+            }
+
+            if (validateCell(i, j)) { // Perhaps Jack doesn't support short-circuit evalution?
+                if (make(i, j + 1)) {
+                    do Memory.deAlloc(candidates);
+                    return true;
+                }
+            }
+            let n = n + 1;
+        }
+
+        do board.setLoc(i, j, 0);
+        do Memory.deAlloc(candidates);
+        return false;
+    }
+
+    method void show() {
+        var int row, col;
+        var int xOffset;
+
+        let col = 0;
+        let xOffset = 7;
+        
+        while (row < 9) {
+            let col = 0;
+            while (col < 9) {
+                do Digit.draw(board.getLoc(row, col), (col * 2 + xOffset) + (row * 32 * 28));
+                if (~validateCell(row, col)) {
+                    // draw a cross
+                    do Screen.drawLine((xOffset * 16) + (col * 32)     , row * 28, (xOffset * 16) + (col * 32) + 32, row * 28 + 28);
+                    do Screen.drawLine((xOffset * 16) + (col * 32) + 32, row * 28, (xOffset * 16) + (col * 32)     , row * 28 + 28);
+                }
+                let col = col + 1;
+            }
+            let row = row + 1;
+        }
+
+        // correct right vertical line
+        do Screen.drawLine((xOffset * 16) + (9 * 32)    , 0, (xOffset * 16) + (9 * 32)    , 9 * 28);
+        do Screen.drawLine((xOffset * 16) + (9 * 32) + 1, 0, (xOffset * 16) + (9 * 32) + 1, 9 * 28);
+
+        // correct bottom horizontal line
+        do Screen.drawLine((xOffset * 16), 9 * 28    , (xOffset * 16) + (9 * 32) + 1, 9 * 28 + 0);
+        do Screen.drawLine((xOffset * 16), 9 * 28 + 1, (xOffset * 16) + (9 * 32) + 1, 9 * 28 + 1);
+
+        // add subgrid horizontal lines
+        do Screen.drawLine((xOffset * 16), 3 * 28 - 1, (xOffset * 16) + (9 * 32) + 1, 3 * 28 - 1);
+        do Screen.drawLine((xOffset * 16), 6 * 28 - 1, (xOffset * 16) + (9 * 32) + 1, 6 * 28 - 1);
+        do Screen.drawLine((xOffset * 16), 3 * 28 + 2, (xOffset * 16) + (9 * 32) + 1, 3 * 28 + 2);
+        do Screen.drawLine((xOffset * 16), 6 * 28 + 2, (xOffset * 16) + (9 * 32) + 1, 6 * 28 + 2);
+
+        // add subgrid vertical lines
+        do Screen.drawLine((xOffset * 16) + (3 * 32) - 1, 0, (xOffset * 16) + (3 * 32) - 1, 9 * 28);
+        do Screen.drawLine((xOffset * 16) + (6 * 32) - 1, 0, (xOffset * 16) + (6 * 32) - 1, 9 * 28);
+        do Screen.drawLine((xOffset * 16) + (3 * 32) + 2, 0, (xOffset * 16) + (3 * 32) + 2, 9 * 28);
+        do Screen.drawLine((xOffset * 16) + (6 * 32) + 2, 0, (xOffset * 16) + (6 * 32) + 2, 9 * 28);
+
+        return;
+    }
+}

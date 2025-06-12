@@ -1,0 +1,20 @@
+class Main {
+    function void main() {
+        var SudokuGenerator sudokuGenerator;
+
+        do Output.moveCursor(7, 19);
+        do Output.printString("Sudoku Generator");
+        do Output.moveCursor(10, 19);
+        do Output.printString("Press n to generate");
+        do Output.moveCursor(12, 19);
+        do Output.printString("Press s to slowly generate");
+        do Output.moveCursor(14, 19);
+        do Output.printString("Press q to exit");
+
+        do SudokuGenerator.newInstance();
+        let sudokuGenerator = SudokuGenerator.getInstance();
+        do sudokuGenerator.run();
+        do sudokuGenerator.dispose();
+        return;
+    }
+}

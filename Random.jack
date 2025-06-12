@@ -1,0 +1,50 @@
+class Random {
+
+    static int seed;
+
+    function void setSeed(int s) {
+        let seed = s;
+        return;
+    }
+
+    // a Mod b
+    function int mod(int a, int b) {
+        return a - ((a / b) * b);
+    }
+
+    // get number ranging 1-9
+    function int next() {
+        do Random.update();
+
+        return Random.mod(seed, 9) + 1;
+    }
+
+    function void shuffle(Array arr, int size) {
+        var int tmp, i, n;
+        let i = 0;
+
+        while (i < size) {
+            let n = Random.next() - 1;
+            let tmp = arr[i];
+            let arr[i] = arr[n];
+            let arr[n] = tmp;
+            let i = i + 1;
+        }
+
+        return;
+    }
+
+    function void update() {
+        // PRNG: seed = (17 * seed + 43) % 256
+        var int a, c, m;
+
+        let a = 37;
+        let c = 83;
+        let m = 1024;
+
+        let seed = (a * seed) + c;
+        let seed = Random.mod(seed, m);
+
+        return;
+    }
+}

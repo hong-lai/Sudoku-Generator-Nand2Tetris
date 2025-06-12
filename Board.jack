@@ -1,0 +1,39 @@
+class Board {
+ 
+    field Array arr;
+
+    constructor Board new() {
+        do init();
+        return this;
+    }
+
+    method void init() {
+        var int i;
+        let arr = Array.new(81);
+        let i = 0;
+
+
+        while (i < 81) {
+            let arr[i] = 0;
+            let i = i + 1;
+        }
+
+        return;
+    }
+
+    method int getLoc(int row, int col) {
+        return arr[row * 9 + col];
+    }
+
+
+    method void setLoc(int row, int col, int digit) {
+        let arr[row * 9 + col] = digit;
+        return;
+    }
+
+    method void dispose() {
+        do arr.dispose();
+        do Memory.deAlloc(this);
+        return;
+    }
+}
