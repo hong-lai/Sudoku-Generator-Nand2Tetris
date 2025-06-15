@@ -3,22 +3,46 @@ class SudokuGenerator {
     static SudokuGenerator instance;
     field Board board;
     field Array bucket; // bucket used for validation
+    field Array levels; // store candidates objects for all levels (81 depths)
     field int counter; // used for seed
     field boolean slowMode; // show the shuffle effect
     field boolean exit;
 
     constructor SudokuGenerator new() {
+        var int i;
+        var Array candidates;
+        let i = 0;
+
         let board = Board.new();
         let bucket = Array.new(9);
         let slowMode = false;
         let exit = false;
 
+        // To avoid heap overflow, initialise all candidates needed for all levels (81 depths)
+        let levels = Array.new(81);
+        while (i < 81) {
+            let candidates = Array.new(81);
+            let levels[i] = candidates;
+            let i = i + 1;
+        }
+
         return this;
     }
 
     method void dispose() {
+        var int i;
+        var Array tmp;
+
         do board.dispose();
-        do Memory.deAlloc(bucket);
+        do bucket.dispose();
+
+        let i = 0;
+        while (i < 81) {
+            let tmp = levels[i];
+            do tmp.dispose();
+            let i = i + 1;
+        }
+
         do Memory.deAlloc(this);
         return;
     }
@@ -46,10 +70,12 @@ class SudokuGenerator {
 
             if (key = 110) { // n
                 let slowMode = false;
+                do randomiseCandidates();
                 do generateBoard();
             } else {
                 if (key = 115) { // s
                     let slowMode = true;
+                    do randomiseCandidates();
                     do generateBoard();
                 } else {
                     if (key = 113) { // q
@@ -93,6 +119,22 @@ class SudokuGenerator {
         }
 
         do Random.shuffle(arr, 9);
+
+        return;
+    }
+
+    method void randomiseCandidates() {
+        var int i;
+        var Array candidates;
+
+        let i = 0;
+
+        while (i < 81) {
+            let candidates = levels[i];            
+            do randomiseArr(candidates);
+            let levels[i] = candidates;
+            let i = i + 1;
+        }
 
         return;
     }
@@ -153,37 +195,33 @@ class SudokuGenerator {
     method void generateBoard() {
         do Random.setSeed(counter);
         do board.init();
-        do make(0, 0);
+        do make(0, 0, 0);
         do show();
         return;
     }
 
-    method boolean make(int i, int j) {
+    method boolean make(int i, int j, int depth) {
         var int n;
         var Array candidates;
-
 
         if (i = 9) {
             return true;
         }
 
         if (j = 9) {
-            return make(i + 1, 0);
+            return make(i + 1, 0, depth);
         }
 
-        let candidates = Array.new(9);
-        do randomiseArr(candidates);
-
         let n = 0;
+        let candidates = levels[depth];
         while (n < 9) {
             do board.setLoc(i, j, candidates[n]);
             if (slowMode) {
                 do show();
             }
 
-            if (validateCell(i, j)) { // Perhaps Jack doesn't support short-circuit evalution?
-                if (make(i, j + 1)) {
-                    do Memory.deAlloc(candidates);
+            if (validateCell(i, j)) { // Perhaps Jack doesn't support short-circuit evaluation?
+                if (make(i, j + 1, depth + 1)) {
                     return true;
                 }
             }
@@ -191,7 +229,6 @@ class SudokuGenerator {
         }
 
         do board.setLoc(i, j, 0);
-        do Memory.deAlloc(candidates);
         return false;
     }
 
